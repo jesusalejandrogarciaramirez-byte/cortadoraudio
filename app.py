@@ -2,6 +2,7 @@ import streamlit as st
 from pydub import AudioSegment
 import io
 import zipfile
+import os  # Se incluye os para extraer el nombre sin extensión
 
 # Función para convertir diferentes formatos de tiempo a segundos (float)
 def parse_time_to_seconds(time_str: str) -> float:
@@ -51,6 +52,11 @@ if uploaded_file and instrucciones:
         try:
             formato_audio = uploaded_file.name.split(".")[-1].lower()
             
+            # --- OBTENER EL NOMBRE ORIGINAL SIN LA EXTENSIÓN ---
+            nombre_base = os.path.splitext(uploaded_file.name)[0]
+            nombre_zip_final = f"{nombre_base}.zip"
+            # ----------------------------------------------------
+            
             st.info("Cargando archivo de audio... Esto puede tomar un momento según el tamaño.")
             audio = AudioSegment.from_file(io.BytesIO(uploaded_file.read()), format=formato_audio)
             
@@ -82,14 +88,12 @@ if uploaded_file and instrucciones:
                             # Realizar el corte
                             corte = audio[inicio_ms:fin_ms]
                             
-                            # --- SOLUCIÓN ERROR FFMPEG M4A ---
-                            # Si el formato es m4a, indicamos a pydub el formato "ipod" para la codificación correcta
+                            # Solución FFmpeg M4A
                             formato_exportacion = "ipod" if formato_audio == "m4a" else formato_audio
                             
                             buffer_corte = io.BytesIO()
                             corte.export(buffer_corte, format=formato_exportacion)
                             buffer_corte.seek(0)
-                            # ---------------------------------
                             
                             nombre_archivo = f"{nombre}.{formato_audio}"
                             archivo_zip.writestr(nombre_archivo, buffer_corte.read())
@@ -105,10 +109,12 @@ if uploaded_file and instrucciones:
             
             if len(zip_buffer.getvalue()) > 22:
                 st.success("¡Procesamiento completado con éxito!")
+                
+                # Se aplica el nombre dinámico del ZIP en el botón de descarga web
                 st.download_button(
-                    label="Descargar todos los cortes (ZIP)",
+                    label=f"Descargar {nombre_zip_final}",
                     data=zip_buffer,
-                    file_name="cortes_audio.zip",
+                    file_name=nombre_zip_final,
                     mime="application/zip"
                 )
             else:
