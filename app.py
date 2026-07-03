@@ -24,11 +24,15 @@ def parse_time_to_seconds(time_str: str) -> float:
 st.set_page_config(page_title="Cortador de Audio por Lotes", page_icon="✂️")
 
 st.title("✂️ Cortador de Audio por Lotes")
-st.write("Sube tu archivo de audio e introduce las instrucciones generadas por la IA para recortar los fragmentos.")
+st.write("Sube tu archivo de audio (.m4a, .mp3, .wav) e introduce las instrucciones de corte.")
 
 st.info("💡 **Formatos admitidos de tiempo:** Segundos (ej. `125`) o Minutos:Segundos (ej. `2:05`).")
 
-uploaded_file = st.file_uploader("1. Selecciona el archivo de audio (.mp3, .wav, .m4a)", type=["mp3", "wav", "m4a", "ogg"])
+# El selector de archivos acepta m4a de forma nativa
+uploaded_file = st.file_uploader(
+    "1. Selecciona el archivo de audio", 
+    type=["m4a", "mp3", "wav", "ogg"]
+)
 
 ejemplo_instrucciones = (
     "nombre_corte_1, 1:10, 2:05\n"
@@ -43,9 +47,10 @@ instrucciones = st.text_area(
 if uploaded_file and instrucciones:
     if st.button("Procesar y Cortar Audio", type="primary"):
         try:
+            # Detecta si es m4a, mp3 o wav
             formato_audio = uploaded_file.name.split(".")[-1].lower()
             
-            st.info("Procesando archivo de audio... Esto puede tomar un momento dependiendo del tamaño.")
+            st.info("Procesando archivo de audio... Esto puede tomar un momento según el tamaño del archivo.")
             audio = AudioSegment.from_file(io.BytesIO(uploaded_file.read()), format=formato_audio)
             
             lineas = [linea.strip() for linea in instrucciones.strip().split("\n") if linea.strip()]
@@ -72,6 +77,7 @@ if uploaded_file and instrucciones:
                             corte = audio[inicio_ms:fin_ms]
                             
                             buffer_corte = io.BytesIO()
+                            # Exporta el corte manteniendo el mismo formato de entrada (ej. m4a)
                             corte.export(buffer_corte, format=formato_audio)
                             buffer_corte.seek(0)
                             
@@ -90,7 +96,7 @@ if uploaded_file and instrucciones:
             if len(zip_buffer.getvalue()) > 22:
                 st.success("¡Cortes generados exitosamente!")
                 st.download_button(
-                    label="⬇️ Descargar todos los cortes (ZIP)",
+                    label=f"⬇️ Descargar todos los cortes ({formato_audio.upper()}) (ZIP)",
                     data=zip_buffer,
                     file_name="cortes_audio.zip",
                     mime="application/zip"
